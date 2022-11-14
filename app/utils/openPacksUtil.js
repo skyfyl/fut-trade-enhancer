@@ -299,7 +299,7 @@ const buyPack = (pack, popUpValues) => {
               (item) => item.isPlayer()
             );
             await fetchPrices(players);
-          
+            const dataSource = getDataSource();
             for (const card of players) {
               const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
               if (existingValue && existingValue.price) {
