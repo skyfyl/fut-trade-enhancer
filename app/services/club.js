@@ -1,4 +1,5 @@
 import {
+  splitGroup,
   downloadCsv,
   wait,
   hideLoader,
@@ -10,7 +11,7 @@ import { getDataSource, getValue, setValue } from "./repository";
 import { t } from "../services/translate";
 import { sendUINotification } from "../utils/notificationUtil";
 import { fetchPrices } from "./datasource";
-import { listCardOverPrice } from "../utils/relistUtil";
+import { listCardOverPrice, computeSalePrice} from "../utils/relistUtil";
 
 export const getSquadPlayerIds = () => {
   return new Promise((resolve, reject) => {
@@ -71,6 +72,41 @@ export const getAllClubPlayers = function (filterLoaned, playerId) {
       searchCriteria.defId = [playerId];
     }
     searchCriteria.count = MAX_CLUB_SEARCH;
+    let gatheredSquad = [];
+
+    const getAllSquadMembers = () => {
+      getClubSquad(searchCriteria).observe(
+        this,
+        async function (sender, response) {
+          gatheredSquad = [
+            ...response.response.items.filter(
+              (item) => !filterLoaned || item.loans < 0
+            ),
+          ];
+          if (response.status !== 400 && !response.response.retrievedAll) {
+            searchCriteria.offset += searchCriteria.count;
+            await wait(1);
+            getAllSquadMembers();
+          } else {
+            resolve(gatheredSquad);
+          }
+        }
+      );
+    };
+    getAllSquadMembers();
+  });
+};
+
+export const getAllClubBronzePlayers = function (filterLoaned, playerId) {
+  return new Promise((resolve) => {
+    services.Club.clubDao.resetStatsCache();
+    services.Club.getStats();
+    const searchCriteria = new UTBucketedItemSearchViewModel().searchCriteria;
+    if (playerId) {
+      searchCriteria.defId = [playerId];
+    }
+    searchCriteria.count = MAX_CLUB_SEARCH;
+    searchCriteria.level = 'bronze';
     let gatheredSquad = [];
 
     const getAllSquadMembers = () => {
@@ -197,31 +233,51 @@ export const downloadClub = async () => {
 
 export const listAllBronzeWithOverPrice = async () => {
   showLoader();
-  let squadMembers = await getAllClubPlayers(true);
+  let squadMembers = await getAllClubBronzePlayers(true);
   squadMembers = squadMembers.filter((squadMember) => squadMember.isBronzeRating());
+  sendUINotification(
+    `find bronze count ${squadMembers.length}`
+  );
   squadMembers = squadMembers.sort((a, b) => b.rating - a.rating);
 
-  await fetchPrices(squadMembers);
+  let splitGroups = splitGroup(squadMembers, 20);
+  sendUINotification(
+    `split array count: ${splitGroups.length}`
+  );
   const dataSource = getDataSource();
+  for (let index = 0; index < splitGroups.length; index++) {
+    const splitSquadMembers = splitGroups[index];
+    
+    sendUINotification(
+      `run split array index: ${index+1}`
+    );
+    await fetchPrices(splitSquadMembers);  
+    sendUINotification(
+      `run split array index: ${index+1} filled futbin price`
+    );
+    for (const squadMember of splitSquadMembers) {
+      if (!squadMember._itemPriceLimits ) {
+        continue;
+      } 
 
-  for (const squadMember of squadMembers) {
-    if (!squadMember._itemPriceLimits ) {
-      continue;
-    } 
-
-    if (squadMember._itemPriceLimits.minimum >= 3000){
-      continue;
-    }
-
-    const existingValue = getValue(`${squadMember.definitionId}_${dataSource}_price`);
-    if (existingValue && existingValue.price && existingValue.price >= 700) {
-      if (repositories.Item.isPileFull(ItemPile.TRANSFER)) {
-        return resolve(t("transferListFull"));
+      if (squadMember._itemPriceLimits.minimum >= 3000){
+        continue;
       }
-      await listCardOverPrice(computeSalePrice(existingValue.price), card);
-    } else {
-      continue;
+
+      const existingValue = getValue(`${squadMember.definitionId}_${dataSource}_price`);
+      if (existingValue && existingValue.price && existingValue.price >= 700) {
+        if (repositories.Item.isPileFull(ItemPile.TRANSFER)) {
+          return sendUINotification(
+            t("transferListFull"),
+            UINotificationType.NEGATIVE
+          );
+        }
+        await listCardOverPrice(computeSalePrice(existingValue.price), squadMember);
+      } else {
+        continue;
+      }
     }
+
   }
   hideLoader();
 };

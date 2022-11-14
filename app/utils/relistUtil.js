@@ -272,9 +272,10 @@ export const listCardOverPrice = async (price, card, isFixedPrice, startPrice) =
   );
 };
 
-const computeSalePrice = (cardPrice) => {
+export const computeSalePrice = (cardPrice) => {
   const futBinPercent =
     getRandNumberInRange(getValue("EnhancerSettings")["idFutBinPercent"]) ||
     100;
   return (cardPrice * futBinPercent) / 100;
 };
+

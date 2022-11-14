@@ -1,5 +1,16 @@
 import { isMarketAlertApp } from "../app.constants";
 
+export const splitGroup = (array, subGroupLength) => {
+  var index = 0;
+  var newArray = [];
+
+  while(index < array.length) {
+    newArray.push(array.slice(index, index += subGroupLength));
+  }
+
+  return newArray;
+};
+
 export const addBtnListner = (selector, callback) => {
   $(document).on(
     {
