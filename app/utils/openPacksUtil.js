@@ -1,5 +1,7 @@
 import {
-  idPackDuplicatesAction,
+  idPackDuplicatesNonPlayersAction,
+  idPackDuplicatesPlayersAction,
+  // idPackDuplicatesAction,
   idPackNonPlayersAction,
   idPackOpenCredits,
   idPackPlayersAction,
@@ -10,7 +12,7 @@ import { sendPinEvents, sendUINotification } from "./notificationUtil";
 import { t } from "../services/translate";
 import { updateUserCredits } from "../services/user";
 import { getDataSource } from "../services/repository";
-import { listCards } from "./reListUtil";
+import { listCards, listCardsOverPrice } from "./reListUtil";
 
 export const validateFormAndOpenPack = async (pack) => {
   const popUpValues = getPopUpValues();
@@ -35,6 +37,10 @@ const setUpType = () => {
       value: "listExternal",
       label: formatDataSource(t("listFutBin"), getDataSource()),
     },
+    {
+      value: "listExternalOverPrice",
+      label: formatDataSource(t("listFutBinOverPrice"), getDataSource()),
+    },
   ];
   return [
     { id: idPackPlayersAction, label: t("players"), actions: defaultOptions },
@@ -43,9 +49,19 @@ const setUpType = () => {
       label: t("nonPlayers"),
       actions: defaultOptions.slice(0, 3),
     },
+    // {
+    //   id: idPackDuplicatesAction,
+    //   label: t("duplicates"),
+    //   actions: defaultOptions.slice(1),
+    // },
     {
-      id: idPackDuplicatesAction,
-      label: t("duplicates"),
+      id: idPackDuplicatesPlayersAction,
+      label: t("duplicatesPlayers"),
+      actions: defaultOptions.slice(1),
+    },
+    {
+      id: idPackDuplicatesNonPlayersAction,
+      label: t("duplicatesNonPlayers"),
       actions: defaultOptions.slice(1),
     },
   ];
@@ -93,12 +109,16 @@ const getPopUpValues = () => {
   const credits = $(`#${idPackOpenCredits}`).val() || GameCurrency.COINS;
   const playersHandler = $(`#${idPackPlayersAction}`).val();
   const nonPlayersHandler = $(`#${idPackNonPlayersAction}`).val();
-  const duplicateHandler = $(`#${idPackDuplicatesAction}`).val();
+  // const duplicateHandler = $(`#${idPackDuplicatesAction}`).val();
+  const duplicatePlayersHandler = $(`#${idPackDuplicatesPlayersAction}`).val();
+  const duplicateNonPlayersHandler = $(`#${idPackDuplicatesNonPlayersAction}`).val();
   return {
     noOfPacks,
     playersHandler,
     nonPlayersHandler,
-    duplicateHandler,
+    // duplicateHandler,
+    duplicatePlayersHandler,
+    duplicateNonPlayersHandler,
     credits,
   };
 };
@@ -137,10 +157,26 @@ const handleNonDuplicateNonPlayers = (items, action) => {
   return handleItems(nonDuplicateNonPlayersItems, action);
 };
 
-const handleDuplicates = (items, action) => {
-  const duplicateItems = items.filter((item) => item.isDuplicate());
-  sendUINotification(t("handlingDuplicates"));
-  return handleItems(duplicateItems, action);
+// const handleDuplicates = (items, action) => {
+//   const duplicateItems = items.filter((item) => item.isDuplicate());
+//   sendUINotification(t("handlingDuplicates"));
+//   return handleItems(duplicateItems, action);
+// };
+
+const handleDuplicatePlayers = (items, action) => {
+  const duplicatePlayersItems = items.filter(
+    (item) => item.isDuplicate() && item.isPlayer()
+  );
+  sendUINotification(t("handlingDuplicatePlayers"));
+  return handleItems(duplicatePlayersItems, action);
+};
+
+const handleDuplicateNonPlayers = (items, action) => {
+  const duplicateNonPlayersItems = items.filter(
+    (item) => item.isDuplicate() && !item.isPlayer()
+  );
+  sendUINotification(t("handlingDuplicateNonPlayers"));
+  return handleItems(duplicateNonPlayersItems, action);
 };
 
 const handleMiscItems = (items) => {
@@ -166,7 +202,7 @@ const handleItems = (items, action) => {
     if (!items.length) {
       resolve("");
     }
-    if (action === "moveTransfers" || action === "listExternal") {
+    if (action === "moveTransfers" || action === "listExternal" ) {
       if (repositories.Item.isPileFull(ItemPile.TRANSFER)) {
         return resolve(t("transferListFull"));
       }
@@ -189,7 +225,19 @@ const handleItems = (items, action) => {
           resolve("");
         }
       );
-    } else if (action === "quickSell") {
+    } else if(action === "listExternalOverPrice"){
+      await listCardsOverPrice(items);
+      showLoader();
+      resolve("");
+      await wait(2);
+      services.Item.move(items, ItemPile.CLUB).observe(
+        this,
+        function (sender, data) {
+          resolve("");
+        }
+      );
+    } 
+     else if (action === "quickSell") {
       services.Item.discard(items).observe(this, function (sender, data) {
         resolve("");
       });
@@ -236,9 +284,19 @@ const buyPack = (pack, popUpValues) => {
               popUpValues.nonPlayersHandler
             );
             await wait(2);
-            response += await handleDuplicates(
+            // response += await handleDuplicates(
+            //   items,
+            //   popUpValues.duplicateHandler
+            // );
+            // await wait(2);
+            response += await handleDuplicatePlayers(
               items,
-              popUpValues.duplicateHandler
+              popUpValues.duplicatePlayersHandler
+            );
+            await wait(2);
+            response += await handleDuplicateNonPlayers(
+              items,
+              popUpValues.duplicateNonPlayersHandler
             );
             await wait(2);
             response += await handleMiscItems(items);

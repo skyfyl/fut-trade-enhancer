@@ -172,6 +172,27 @@ export const listCards = async (cards, price, startPrice, isRelist) => {
   sendUINotification(t("listingCardsCompleted"));
 };
 
+export const listCardsOverPrice = async (cards, price, startPrice, isRelist) => {
+  cards = cards.filter((card) => !card.untradeable);
+  const dataSource = getDataSource();
+  if (!cards.length) {
+    sendUINotification(t("noCardsToList"), UINotificationType.NEGATIVE);
+    return;
+  }
+  showLoader();
+  if (price) {
+    sendUINotification(
+      `${formatDataSource(t("listingCards"), dataSource)} ${price}`
+    );
+    await listCardsForFixedPrice(cards, price, startPrice, isRelist);
+  } else {
+    sendUINotification(formatDataSource(t("listingCardsFutBin"), dataSource));
+    await listCardsForFutBINWithOverPrice(cards, isRelist);
+  }
+  hideLoader();
+  sendUINotification(t("listingCardsCompleted"));
+};
+
 const listCardsForFixedPrice = async (cards, price, startPrice, isRelist) => {
   for (const card of cards) {
     await listCard(price, card, true, startPrice);
@@ -186,6 +207,26 @@ const listCardsForFutBIN = async (cards, isRelist) => {
     const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
     if (existingValue && existingValue.price) {
       await listCard(computeSalePrice(existingValue.price), card);
+    } else {
+      sendUINotification(
+        `${t("priceMissing")} ${card._staticData.name}`,
+        UINotificationType.NEGATIVE
+      );
+    }
+  }
+};
+
+const listCardsForFutBINWithOverPrice = async (cards, isRelist) => {
+  const dataSource = getDataSource();
+  await fetchPrices(cards);
+
+  for (const card of cards) {
+    const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
+    if (existingValue && existingValue.price) {
+      if (existingValue.price > 200 && card._itemPriceLimits.minimum < 3000){
+        console.log(JSON.stringify(card))
+        await listCard(computeSalePrice(existingValue.price), card);
+      }      
     } else {
       sendUINotification(
         `${t("priceMissing")} ${card._staticData.name}`,
