@@ -12,7 +12,10 @@ import { sendPinEvents, sendUINotification } from "./notificationUtil";
 import { t } from "../services/translate";
 import { updateUserCredits } from "../services/user";
 import { getDataSource } from "../services/repository";
-import { listCards, listCardsOverPrice } from "./reListUtil";
+import { listCards, listCardsOverPrice,  computeSalePrice} from "./reListUtil";
+import { fetchPrices} from "../services/datasource/index";
+import { getSellPrice} from "./sellUtil";
+import { showPopUp } from "../function-overrides/popup-override";
 
 export const validateFormAndOpenPack = async (pack) => {
   const popUpValues = getPopUpValues();
@@ -125,6 +128,8 @@ const getPopUpValues = () => {
 
 const buyRequiredNoOfPacks = async (pack, popUpValues) => {
   showLoader();
+  let sellAmount = 0;
+  let costAmount = 0;
   while (popUpValues.noOfPacks > 0) {
     const response = await buyPack(pack, popUpValues);
     if (!response.success) {
@@ -137,7 +142,22 @@ const buyRequiredNoOfPacks = async (pack, popUpValues) => {
     await wait(3);
     popUpValues.noOfPacks--;
     sendUINotification(`${popUpValues.noOfPacks} ${t("packsRemaining")}`);
+
+    costAmount += pack.prices._collection[popUpValues.credits].amount;
+    sellAmount += response.sellSum;
   }
+
+  showPopUp(
+    [
+      { labelEnum: enums.UIDialogOptions.OK },
+    ],
+    'open packs profit',
+    'costAmount: ' + costAmount + '\n\r' + 'sellAmount: ' + sellAmount + '\n\r' + 'profit: ' + sellAmount - costAmount + '\n\r' + 'profitRate: ' + Math.floor((sellAmount - costAmount)/costAmount*100) + '%',
+    (text) => {
+      
+    }
+  );
+
   hideLoader();
 };
 
@@ -273,6 +293,26 @@ const buyPack = (pack, popUpValues) => {
         services.Item.requestUnassignedItems().observe(
           this,
           async function (sender, { response: { items } }) {
+
+            let sellSum = 0;
+            const players = items.filter(
+              (item) => item.isPlayer()
+            );
+            await fetchPrices(players);
+          
+            for (const card of players) {
+              const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
+              if (existingValue && existingValue.price) {
+                const [isRight, sellPrice]  = await getSellPrice(computeSalePrice(existingValue.price), card);
+                sellSum += sellPrice;
+              } else {
+                sendUINotification(
+                  `${t("priceMissing")} ${card._staticData.name}`,
+                  UINotificationType.NEGATIVE
+                );
+              }
+            }
+
             let response = "";
             response += await handleNonDuplicatePlayers(
               items,
@@ -302,7 +342,7 @@ const buyPack = (pack, popUpValues) => {
             response += await handleMiscItems(items);
             await wait(1);
             await updateUserCredits();
-            resolve({ success: !response.length, message: response });
+            resolve({ success: !response.length, message: response , sellSum: sellSum});
           }
         );
       } else {

@@ -35,6 +35,32 @@ export const listForPrice = async (
   return [true, sellPrice];
 };
 
+export const getSellPrice = async (
+  sellPrice,
+  player,
+  ignoreRoundOff,
+  startPrice
+) => {
+  await getPriceLimits(player);
+  if (sellPrice) {
+    const duration = getValue("EnhancerSettings")["idFutBinDuration"] || "1H";
+    if (player.hasPriceLimits()) {
+      if (!ignoreRoundOff) {
+        sellPrice = computeSellPrice(sellPrice, player);
+      } else {
+        if (
+          sellPrice < player._itemPriceLimits.minimum ||
+          sellPrice > player._itemPriceLimits.maximum
+        ) {
+          return [false];
+        }
+      }
+    }
+    sellPrice = roundOffPrice(sellPrice, 200);
+  }
+  return [true, sellPrice];
+};
+
 const computeSellPrice = (sellPrice, player) => {
   sellPrice = roundOffPrice(
     Math.min(
