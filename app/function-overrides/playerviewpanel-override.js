@@ -1,12 +1,32 @@
-import { getValue, setValue } from "../services/repository";
+import { getValue, setValue, getDataSource } from "../services/repository";
 import { t } from "../services/translate";
-
+import { fetchPrices } from "../services/datasource";
 import {
   generateAfterTaxInfo,
   generateCalcMinBin,
   generateListForFutBinBtn,
   generateViewOnFutBinBtn,
 } from "../utils/uiUtils/generateElements";
+
+import {
+  generateButton,
+} from "../utils/uiUtils/generateButton";
+
+import {
+  idInputFutBinPrice,
+  idSellSamePlayerFutBinPrice
+} from "../app.constants";
+
+import {
+  getSellBidPrice
+} from "../utils/priceUtil";
+
+import {
+  listCards,
+  computeSalePrice
+} from "../utils/relistUtil";
+
+import { getSellPrice } from "../utils/sellUtil";
 
 export const playerViewPanelOverride = () => {
   const calcTaxPrice = (buyPrice) => {
@@ -52,6 +72,85 @@ export const playerViewPanelOverride = () => {
       this._futbinListFor = generateListForFutBinBtn();
       this.__root.children[0].appendChild(this._futbinListFor.__root);
       generateAfterTaxInfo().insertAfter($(this._buyNowNumericStepper.__root));
+      $(
+        generateButton(
+          idInputFutBinPrice,
+          'Input FutBin Price',
+          () => {
+            const dataSource = getDataSource();
+            const card =
+              getValue("selectedPlayer") || getValue("selectedNonPlayer");
+            if (!card) {
+              return;
+            }
+
+            (async () => {
+              await fetchPrices([card]);
+            })();
+
+            (async () => {
+              const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
+              if (existingValue && existingValue.price) {
+                const [isRight, sellPrice] = await getSellPrice(computeSalePrice(existingValue.price), card);
+                console.log('sellPrice: ' + sellPrice)
+                const bidPrice = getSellBidPrice(sellPrice);
+                this._bidNumericStepper.setValue(bidPrice);
+                this._buyNowNumericStepper.setValue(sellPrice);
+              }
+            })();
+          },
+          "call-to-action"
+        )
+      ).insertAfter($(this._listButton.__root));
+
+      $(
+        generateButton(
+          idSellSamePlayerFutBinPrice,
+          'Sell AllSame FutBin Price',
+          () => {
+            // const dataSource = getDataSource();
+            const card =
+              getValue("selectedPlayer") || getValue("selectedNonPlayer");
+            if (!card) {
+              return;
+            }
+
+            (async () => {
+              await fetchPrices([card]);
+            })();
+
+            
+            services.Item.requestTransferItems().observe(
+              this,
+              async function (t, response) {
+                const unSoldItems = response.response.items.filter(function (item) {
+                  return (
+                    card.definitionId === item.definitionId
+                  );
+                });
+                const price = parseInt(this._buyNowNumericStepper.getValue());
+                const startPrice = parseInt(this._bidNumericStepper.getValue());
+                console.log('price: ' + price);
+                console.log('startPrice: ' + startPrice);
+
+                await listCards(unSoldItems, price, startPrice, false);  
+              }
+            );
+
+                  
+
+            // (async () => {
+            //   const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
+            //   if (existingValue && existingValue.price) {
+            //     const [isRight, sellPrice] = await getSellPrice(computeSalePrice(existingValue.price), card);
+            //     this._bidNumericStepper.setValue(getSellBidPrice(sellPrice));
+            //     this._buyNowNumericStepper.setValue(sellPrice);
+            //   }
+            // })();
+          },
+          "call-to-action"
+        )
+      ).insertAfter($(this._listButton.__root));
     }
   };
 
@@ -87,5 +186,70 @@ export const playerViewPanelOverride = () => {
         this._calcMinBin.__root
       );
     }
+  };
+
+  const inputFutBinPriceActionButtons = function (homeThis) {
+
+
+    const dataSource = getDataSource();
+    const card =
+      getValue("selectedPlayer") || getValue("selectedNonPlayer");
+    if (!card) {
+      return;
+    }
+
+    (async () => {
+      await fetchPrices([card]);
+    })();
+
+    (async () => {
+      const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
+      if (existingValue && existingValue.price) {
+        const [isRight, sellPrice] = await getSellPrice(computeSalePrice(existingValue.price), card);
+        homeThis._bidNumericStepper.setValue(getSellBidPrice(sellPrice));
+        homeThis._buyNowNumericStepper.setValue(sellPrice);
+      }
+    })();
+
+
+  };
+
+  const sellAllSamePlayerFutBinPriceActionButtons = function (homeThis) {
+
+    const dataSource = getDataSource();
+    const card =
+      getValue("selectedPlayer") || getValue("selectedNonPlayer");
+    if (!card) {
+      return;
+    }
+
+    (async () => {
+      await fetchPrices([card]);
+    })();
+
+    services.Item.requestTransferItems().observe(
+      this,
+      async function (t, response) {
+        let unSoldItems = response.response.items.filter(function (item) {
+          return (
+            card.definitionId === item.definitionId
+          );
+        });
+
+        let price = parseInt(homeThis._buyNowNumericStepper.getValue());
+        let startPrice = parseInt(homeThis._bidNumericStepper.getValue());
+        await listCards(unSoldItems, price, startPrice, true);
+      }
+    );
+
+    (async () => {
+      const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
+      if (existingValue && existingValue.price) {
+        const [isRight, sellPrice] = await getSellPrice(computeSalePrice(existingValue.price), card);
+        homeThis._bidNumericStepper.setValue(getSellBidPrice(sellPrice));
+        homeThis._buyNowNumericStepper.setValue(sellPrice);
+      }
+    })();
+
   };
 };

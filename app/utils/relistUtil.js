@@ -193,7 +193,7 @@ export const listCardsOverPrice = async (cards, price, startPrice, isRelist) => 
   sendUINotification(t("listingCardsCompleted"));
 };
 
-const listCardsForFixedPrice = async (cards, price, startPrice, isRelist) => {
+export const listCardsForFixedPrice = async (cards, price, startPrice, isRelist) => {
   for (const card of cards) {
     await listCard(price, card, true, startPrice);
   }
