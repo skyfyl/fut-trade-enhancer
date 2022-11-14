@@ -146,13 +146,13 @@ const buyRequiredNoOfPacks = async (pack, popUpValues) => {
     costAmount += pack.prices._collection[popUpValues.credits].amount;
     sellAmount += response.sellSum;
   }
-
+  const msg = ['costAmount: ' + costAmount, 'sellAmount: ' + sellAmount, 'profit: ' + (sellAmount - costAmount), 'profitRate: ' + Math.floor((sellAmount*0.95 - costAmount)/costAmount*100) + '%']
   showPopUp(
     [
       { labelEnum: enums.UIDialogOptions.OK },
     ],
     'open packs profit',
-    'costAmount: ' + costAmount + '\n\r' + 'sellAmount: ' + sellAmount + '\n\r' + 'profit: ' + sellAmount - costAmount + '\n\r' + 'profitRate: ' + Math.floor((sellAmount - costAmount)/costAmount*100) + '%',
+    msg.join('\n\r'),
     (text) => {
       
     }
@@ -302,7 +302,7 @@ const buyPack = (pack, popUpValues) => {
             const dataSource = getDataSource();
             for (const card of players) {
               const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
-              if (existingValue && existingValue.price) {
+              if (existingValue && existingValue.price && card._itemPriceLimits.minimum < 3000) {
                 const [isRight, sellPrice]  = await getSellPrice(computeSalePrice(existingValue.price), card);
                 sellSum += sellPrice;
               } else {
