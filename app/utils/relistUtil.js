@@ -254,6 +254,24 @@ const listCard = async (price, card, isFixedPrice, startPrice) => {
   );
 };
 
+export const listCardOverPrice = async (price, card, isFixedPrice, startPrice) => {
+  const [isListed, lisitedPrice] = await listForPrice(
+    price,
+    card,
+    isFixedPrice,
+    startPrice
+  );
+  if (!isListed) {
+    return sendUINotification(
+      t("priceNotInRange"),
+      UINotificationType.NEGATIVE
+    );
+  }
+  sendUINotification(
+    `${t("listed")} ${card._staticData.name} - ${lisitedPrice}`
+  );
+};
+
 const computeSalePrice = (cardPrice) => {
   const futBinPercent =
     getRandNumberInRange(getValue("EnhancerSettings")["idFutBinPercent"]) ||

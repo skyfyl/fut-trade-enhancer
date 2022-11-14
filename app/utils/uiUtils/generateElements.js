@@ -5,7 +5,7 @@ import { sendUINotification } from "../notificationUtil";
 import { listCards } from "../reListUtil";
 import { calculatePlayerMinBin } from "../../services/minBinCalc";
 import { t } from "../../services/translate";
-import { downloadClub } from "../../services/club";
+import { downloadClub, listAllBronzeWithOverPrice } from "../../services/club";
 import { formatDataSource } from "../commonUtil";
 import { showPopUp } from "../../function-overrides/popup-override";
 
@@ -130,6 +130,14 @@ export const generateDownloadClubCsv = () => {
   return createButton(
     `${t("downloadAsCsv")}`,
     downloadClub,
+    "btn-standard mini downloadClub clubAction"
+  );
+};
+
+export const generateListForFutBinForAllBronzeOverPriceBtn = () => {
+  return createButton(
+    `${t("listForFutBinForAllBronzeOverPrice")}`,
+    listAllBronzeWithOverPrice,
     "btn-standard mini downloadClub clubAction"
   );
 };

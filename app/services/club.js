@@ -10,6 +10,7 @@ import { getDataSource, getValue, setValue } from "./repository";
 import { t } from "../services/translate";
 import { sendUINotification } from "../utils/notificationUtil";
 import { fetchPrices } from "./datasource";
+import { listCardOverPrice } from "../utils/relistUtil";
 
 export const getSquadPlayerIds = () => {
   return new Promise((resolve, reject) => {
@@ -193,6 +194,38 @@ export const downloadClub = async () => {
 
   hideLoader();
 };
+
+export const listAllBronzeWithOverPrice = async () => {
+  showLoader();
+  let squadMembers = await getAllClubPlayers(true);
+  squadMembers = squadMembers.filter((squadMember) => squadMember.isBronzeRating());
+  squadMembers = squadMembers.sort((a, b) => b.rating - a.rating);
+
+  await fetchPrices(squadMembers);
+  const dataSource = getDataSource();
+
+  for (const squadMember of squadMembers) {
+    if (!squadMember._itemPriceLimits ) {
+      continue;
+    } 
+
+    if (squadMember._itemPriceLimits.minimum >= 3000){
+      continue;
+    }
+
+    const existingValue = getValue(`${squadMember.definitionId}_${dataSource}_price`);
+    if (existingValue && existingValue.price && existingValue.price >= 700) {
+      if (repositories.Item.isPileFull(ItemPile.TRANSFER)) {
+        return resolve(t("transferListFull"));
+      }
+      await listCardOverPrice(computeSalePrice(existingValue.price), card);
+    } else {
+      continue;
+    }
+  }
+  hideLoader();
+};
+
 
 const getCardQuality = (card) => {
   if (card.isGoldRating()) {

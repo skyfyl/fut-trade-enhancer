@@ -1,5 +1,6 @@
 export const enLocales = {
   downloadAsCsv: "Download as CSV",
+  listForFutBinForAllBronzeOverPrice: "List all bronze over price",
   afterTax: "After Tax:",
   price: "Price:",
   autoFill: "Auto Fill",
