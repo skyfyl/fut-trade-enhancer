@@ -2,8 +2,6 @@ import { getValue, setValue, getDataSource } from "../services/repository";
 import { t } from "../services/translate";
 import { fetchPrices } from "../services/datasource";
 import {
-  generateSellAllSamePlayersBtn,
-  generateInputFutBinPriceBtn,
   generateAfterTaxInfo,
   generateCalcMinBin,
   generateListForFutBinBtn,
@@ -11,24 +9,16 @@ import {
 } from "../utils/uiUtils/generateElements";
 
 import {
-  generateButton,
-} from "../utils/uiUtils/generateButton";
-
-import {
-  idInputFutBinPrice,
-  idSellSamePlayerFutBinPrice
-} from "../app.constants";
-
-import {
   getSellBidPrice
 } from "../utils/priceUtil";
 
 import {
   listCards,
-  computeSalePrice
 } from "../utils/relistUtil";
 
 import { getSellPrice } from "../utils/sellUtil";
+
+import { sendUINotification } from "../utils/notificationUtil";
 
 export const playerViewPanelOverride = () => {
   const calcTaxPrice = (buyPrice) => {
@@ -46,9 +36,73 @@ export const playerViewPanelOverride = () => {
   const quickPanelRenderView =
     UTQuickListPanelViewController.prototype.renderView;
 
+  UTQuickListPanelView.prototype.init = function () {
+    utInit.call(this);
+    this._inputFutBinPriceButton.init(),
+    this._inputFutBinPriceButton.setText('Input FutBin Price'),
+    this._inputFutBinPriceButton.addTarget(this, this._inputFutBinPrice, EventType.TAP)
+
+    this._sellAllSamePlayersButton.init(),
+    this._sellAllSamePlayersButton.setText('Sell AllSame Players Price'),
+    this._sellAllSamePlayersButton.addTarget(this, this._listAllSamePlayers, EventType.TAP)
+  };
+
   UTQuickListPanelView.prototype.onBuyPriceChanged = function (e, t, i) {
     buyPriceChanged.call(this, e, t, i);
     calcTaxPrice(this._buyNowNumericStepper.getValue());
+  };
+
+  UTQuickListPanelView.prototype._inputFutBinPrice = function () {
+    const dataSource = getDataSource();
+    const card =
+      getValue("selectedPlayer") || getValue("selectedNonPlayer");
+    if (!card) {
+      return;
+    }
+
+    fetchPrices([card]).then(value => {
+
+      const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
+      if (existingValue && existingValue.price) {
+
+        getSellPrice(existingValue.price, card).then(([isRight, sellPrice]) => {
+
+          console.log('sellPrice: ' + sellPrice)
+          let bidPrice = getSellBidPrice(sellPrice);
+
+          this._bidNumericStepper.setValue(bidPrice);
+          this._buyNowNumericStepper.setValue(sellPrice);
+        });
+      }
+
+    });
+  };
+
+  UTQuickListPanelView.prototype._listAllSamePlayers = function () {
+    const card =
+        getValue("selectedPlayer") || getValue("selectedNonPlayer");
+      if (!card) {
+        return;
+      }
+
+      services.Item.requestTransferItems().observe(
+        this,
+        function (t, response) {
+          const unSoldItems = response.response.items.filter(function (item) {
+            return (
+              card.definitionId === item.definitionId
+            );
+          });
+          const price = parseInt(this._buyNowNumericStepper.getValue());
+          const startPrice = parseInt(this._bidNumericStepper.getValue());
+          console.log('price: ' + price);
+          console.log('startPrice: ' + startPrice);
+
+          listCards(unSoldItems, price, startPrice, false).then(value => {
+            sendUINotification('Sell AllSame Players Price Count: ' + unSoldItems.length);
+          });
+        }
+      );
   };
 
   UTQuickListPanelView.prototype.initFutBinEvent = function (e) {
@@ -76,91 +130,14 @@ export const playerViewPanelOverride = () => {
       this.__root.children[0].appendChild(this._futbinListFor.__root);
       generateAfterTaxInfo().insertAfter($(this._buyNowNumericStepper.__root));
 
-      this._inputFutBinPriceButton = generateInputFutBinPriceBtn();
+      this._inputFutBinPriceButton = new UTStandardButtonControl,
+      this._inputFutBinPriceButton.getRootElement().classList.add("call-to-action");
       this.__panelActions.appendChild(this._inputFutBinPriceButton.getRootElement());
 
-      this._sellAllSamePlayersButton = generateSellAllSamePlayersBtn();
+      this._sellAllSamePlayersButton = new UTStandardButtonControl,
+      this._sellAllSamePlayersButton.getRootElement().classList.add("call-to-action");
       this.__panelActions.appendChild(this._sellAllSamePlayersButton.getRootElement());
-     
-      // $(
-      //   generateButton(
-      //     idInputFutBinPrice,
-      //     'Input FutBin Price',
-      //     () => {
-      //       const dataSource = getDataSource();
-      //       const card =
-      //         getValue("selectedPlayer") || getValue("selectedNonPlayer");
-      //       if (!card) {
-      //         return;
-      //       }
 
-      //       (async () => {
-      //         await fetchPrices([card]);
-      //       })();
-
-      //       (async () => {
-      //         const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
-      //         if (existingValue && existingValue.price) {
-      //           const [isRight, sellPrice] = await getSellPrice(computeSalePrice(existingValue.price), card);
-      //           console.log('sellPrice: ' + sellPrice)
-      //           const bidPrice = getSellBidPrice(sellPrice);
-      //           this._bidNumericStepper.setValue(bidPrice);
-      //           this._buyNowNumericStepper.setValue(sellPrice);
-      //         }
-      //       })();
-      //     },
-      //     "call-to-action"
-      //   )
-      // ).insertAfter($(this._listButton.__root));
-
-      // $(
-      //   generateButton(
-      //     idSellSamePlayerFutBinPrice,
-      //     'Sell AllSame FutBin Price',
-      //     () => {
-      //       // const dataSource = getDataSource();
-      //       const card =
-      //         getValue("selectedPlayer") || getValue("selectedNonPlayer");
-      //       if (!card) {
-      //         return;
-      //       }
-
-      //       (async () => {
-      //         await fetchPrices([card]);
-      //       })();
-
-            
-      //       services.Item.requestTransferItems().observe(
-      //         this,
-      //         async function (t, response) {
-      //           const unSoldItems = response.response.items.filter(function (item) {
-      //             return (
-      //               card.definitionId === item.definitionId
-      //             );
-      //           });
-      //           const price = parseInt(this._buyNowNumericStepper.getValue());
-      //           const startPrice = parseInt(this._bidNumericStepper.getValue());
-      //           console.log('price: ' + price);
-      //           console.log('startPrice: ' + startPrice);
-
-      //           await listCards(unSoldItems, price, startPrice, false);  
-      //         }
-      //       );
-
-                  
-
-      //       // (async () => {
-      //       //   const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
-      //       //   if (existingValue && existingValue.price) {
-      //       //     const [isRight, sellPrice] = await getSellPrice(computeSalePrice(existingValue.price), card);
-      //       //     this._bidNumericStepper.setValue(getSellBidPrice(sellPrice));
-      //       //     this._buyNowNumericStepper.setValue(sellPrice);
-      //       //   }
-      //       // })();
-      //     },
-      //     "call-to-action"
-      //   )
-      // ).insertAfter($(this._listButton.__root));
     }
   };
 
@@ -196,70 +173,5 @@ export const playerViewPanelOverride = () => {
         this._calcMinBin.__root
       );
     }
-  };
-
-  const inputFutBinPriceActionButtons = function (homeThis) {
-
-
-    const dataSource = getDataSource();
-    const card =
-      getValue("selectedPlayer") || getValue("selectedNonPlayer");
-    if (!card) {
-      return;
-    }
-
-    (async () => {
-      await fetchPrices([card]);
-    })();
-
-    (async () => {
-      const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
-      if (existingValue && existingValue.price) {
-        const [isRight, sellPrice] = await getSellPrice(computeSalePrice(existingValue.price), card);
-        homeThis._bidNumericStepper.setValue(getSellBidPrice(sellPrice));
-        homeThis._buyNowNumericStepper.setValue(sellPrice);
-      }
-    })();
-
-
-  };
-
-  const sellAllSamePlayerFutBinPriceActionButtons = function (homeThis) {
-
-    const dataSource = getDataSource();
-    const card =
-      getValue("selectedPlayer") || getValue("selectedNonPlayer");
-    if (!card) {
-      return;
-    }
-
-    (async () => {
-      await fetchPrices([card]);
-    })();
-
-    services.Item.requestTransferItems().observe(
-      this,
-      async function (t, response) {
-        let unSoldItems = response.response.items.filter(function (item) {
-          return (
-            card.definitionId === item.definitionId
-          );
-        });
-
-        let price = parseInt(homeThis._buyNowNumericStepper.getValue());
-        let startPrice = parseInt(homeThis._bidNumericStepper.getValue());
-        await listCards(unSoldItems, price, startPrice, true);
-      }
-    );
-
-    (async () => {
-      const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
-      if (existingValue && existingValue.price) {
-        const [isRight, sellPrice] = await getSellPrice(computeSalePrice(existingValue.price), card);
-        homeThis._bidNumericStepper.setValue(getSellBidPrice(sellPrice));
-        homeThis._buyNowNumericStepper.setValue(sellPrice);
-      }
-    })();
-
   };
 };
