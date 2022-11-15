@@ -1,13 +1,83 @@
-import { getPlayerUrl } from "../../services/datasource";
+import { getPlayerUrl, fetchPrices } from "../../services/datasource";
 import { getDataSource, getValue } from "../../services/repository";
 import { createButton } from "../../view/ButtonView";
 import { sendUINotification } from "../notificationUtil";
-import { listCards } from "../reListUtil";
+import { listCards, computeSalePrice } from "../reListUtil";
+import { getSellPrice } from "../sellUtil";
+import { getSellBidPrice } from "../priceUtil";
 import { calculatePlayerMinBin } from "../../services/minBinCalc";
 import { t } from "../../services/translate";
 import { downloadClub, listAllBronzeWithOverPrice } from "../../services/club";
 import { formatDataSource } from "../commonUtil";
 import { showPopUp } from "../../function-overrides/popup-override";
+
+export const generateInputFutBinPriceBtn = () => {
+  return createButton(
+    'Input FutBin Price',
+    () => {
+      const dataSource = getDataSource();
+      const card =
+        getValue("selectedPlayer") || getValue("selectedNonPlayer");
+      if (!card) {
+        return;
+      }
+
+      fetchPrices([card]).then(value => {
+
+        const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
+        if (existingValue && existingValue.price) {
+
+          getSellPrice(existingValue.price, card).then(([isRight, sellPrice]) => {
+
+            console.log('sellPrice: ' + sellPrice)
+            let bidPrice = getSellBidPrice(sellPrice);
+            this._bidNumericStepper.setValue(bidPrice);
+            this._buyNowNumericStepper.setValue(sellPrice);
+
+            // this.getRootElement()._bidNumericStepper.setValue(bidPrice);
+            // this.getRootElement()._buyNowNumericStepper.setValue(sellPrice);
+          });
+        }
+
+      });
+    },
+    "call-to-action"
+  );
+};
+
+export const generateSellAllSamePlayersBtn = () => {
+  return createButton(
+    'Sell AllSame Players Price',
+    () => {
+      const card =
+        getValue("selectedPlayer") || getValue("selectedNonPlayer");
+      if (!card) {
+        return;
+      }
+
+      services.Item.requestTransferItems().observe(
+        this,
+        function (t, response) {
+          const unSoldItems = response.response.items.filter(function (item) {
+            return (
+              card.definitionId === item.definitionId
+            );
+          });
+          const price = parseInt(this._buyNowNumericStepper.getValue());
+          const startPrice = parseInt(this._bidNumericStepper.getValue());
+          console.log('price: ' + price);
+          console.log('startPrice: ' + startPrice);
+
+          listCards(unSoldItems, price, startPrice, false).then(value => {
+            sendUINotification('Sell AllSame Players Price Count: ' + unSoldItems.length, 'success');
+          });
+        }
+      );
+    },
+    "call-to-action"
+  );
+};
+
 
 export const generateListForFutBinBtn = () => {
   return createButton(
@@ -72,9 +142,9 @@ export const generateCalcMinBin = () => {
             <li>${playerMin.min}</li>
             <li>${playerMin.avgMin}</li>
             ${playerMin.allPrices.reduce((acc, price) => {
-              acc += `<li>${price}</li>`;
-              return acc;
-            }, "")}
+          acc += `<li>${price}</li>`;
+          return acc;
+        }, "")}
           </ol>
         </span>`
       );
@@ -110,18 +180,18 @@ export const generateSectionRelistBtn = (callBack, dataSource) => {
     dataSource === t("fixed")
       ? callBack
       : () => {
-          showPopUp(
-            [
-              { labelEnum: enums.UIDialogOptions.YES },
-              { labelEnum: enums.UIDialogOptions.CANCEL },
-            ],
-            `${t("list")} ${dataSource}`,
-            `${t("list")} ${dataSource}`,
-            (text) => {
-              text === 0 && callBack();
-            }
-          );
-        },
+        showPopUp(
+          [
+            { labelEnum: enums.UIDialogOptions.YES },
+            { labelEnum: enums.UIDialogOptions.CANCEL },
+          ],
+          `${t("list")} ${dataSource}`,
+          `${t("list")} ${dataSource}`,
+          (text) => {
+            text === 0 && callBack();
+          }
+        );
+      },
     "relist call-to-action mini"
   );
 };
