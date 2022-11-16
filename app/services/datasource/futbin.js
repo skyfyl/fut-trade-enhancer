@@ -135,6 +135,25 @@ export const getAllSBCSForChallenge = async (challengeId) => {
   });
 };
 
+export const getLatestAllSBCSForChallenge = async (challengeId) => {
+  const futBinUrl = `https://futbin.org/futbin/api/getChallengeTopSquads?chal_id=${challengeId}&platform=PS`;
+  return new Promise((resolve) => {
+    sendExternalRequest({
+      method: "GET",
+      identifier: `${Math.floor(+new Date())}_getAllSBCSForChallenge`,
+      url: futBinUrl,
+      onload: (res) => {
+        if (res.status !== 200) {
+          return resolve(null);
+        }
+
+        const { data } = JSON.parse(res.response);
+        resolve(data);
+      },
+    });
+  });
+};
+
 export const getSbcPlayersInfo = async (squadId) => {
   const platform = getUserPlatform();
   const futBinPlatform =

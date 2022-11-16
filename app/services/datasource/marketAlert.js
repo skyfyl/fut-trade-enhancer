@@ -1,6 +1,12 @@
 import { sendRequest } from "../../utils/networkUtil";
 import { getValue, setValue } from "../repository";
 import { getUserPlatform } from "../user";
+import { getSquadPlayerIds, getSquadPlayerLookup } from "../club";
+import {
+  getLatestAllSBCSForChallenge,
+  getAllSBCSForChallenge,
+  getSbcPlayersInfo,
+} from "../datasource/futbin";
 
 const fetchPrices = async (items) => {
   const result = new Map();
@@ -57,6 +63,37 @@ export const fetchSbcs = async (challengeId, payload) => {
     }
   );
   return JSON.parse(response);
+};
+
+export const fetchSbcsWithLocal = async (challengeId, payload) => {
+  const sbcId = challengeId;
+  const sbcs = [];
+  const squadPlayers = await getSquadPlayerIds();
+  const squads = await getLatestAllSBCSForChallenge(challengeId);
+  for (let index = 0; index < squads.length; index++) {
+    const squad = squads[index];
+    const _id = squad.id;
+    const futBinSquadPlayersInfo = await getSbcPlayersInfo(squad.id);
+    let availablePlayers = 0;
+    const players = [];
+    for (let i = 0; i < futBinSquadPlayersInfo.length; i++) {
+      const playersInfo = futBinSquadPlayersInfo[i];
+      players.push(playersInfo.definitionId); 
+      if (squadPlayers.has(playersInfo.definitionId)){
+        availablePlayers +=1;      
+      }      
+    } 
+    
+    sbcs.push({
+      _id,
+      availablePlayers,
+      players,
+      sbcId
+    });
+    
+  }
+
+  return sbcs;
 };
 
 export const fetchUniqueSbc = async (challengeId) => {

@@ -8,6 +8,7 @@ import {
   getCurrentViewController,
 } from "../utils/commonUtil";
 import {
+  getLatestAllSBCSForChallenge,
   getAllSBCSForChallenge,
   getSbcPlayersInfo,
 } from "../services/datasource/futbin";
@@ -29,7 +30,7 @@ import { getDataSource, getValue, setValue } from "../services/repository";
 import { getSellBidPrice, roundOffPrice } from "../utils/priceUtil";
 import { t } from "../services/translate";
 import { fetchPrices } from "../services/datasource";
-import { fetchSbcs, fetchUniqueSbc } from "../services/datasource/marketAlert";
+import { fetchSbcs, fetchUniqueSbc,fetchSbcsWithLocal } from "../services/datasource/marketAlert";
 
 export const sbcViewOverride = () => {
   const squladDetailPanelView = UTSBCSquadDetailPanelView.prototype.render;
@@ -68,19 +69,19 @@ export const sbcViewOverride = () => {
   $(document).on(
     {
       change: async function () {
-        if (!isMarketAlertApp) {
-          return sendUINotification(
-            t("solvableUnAvailable"),
-            UINotificationType.NEGATIVE
-          );
-        }
-        const accessLevel = getValue("userAccess");
-        if (!accessLevel || accessLevel === "tradeEnhancer") {
-          return sendUINotification(
-            t("levelError"),
-            UINotificationType.NEGATIVE
-          );
-        }
+        // if (!isMarketAlertApp) {
+        //   return sendUINotification(
+        //     t("solvableUnAvailable"),
+        //     UINotificationType.NEGATIVE
+        //   );
+        // }
+        // const accessLevel = getValue("userAccess");
+        // if (!accessLevel || accessLevel === "tradeEnhancer") {
+        //   return sendUINotification(
+        //     t("levelError"),
+        //     UINotificationType.NEGATIVE
+        //   );
+        // }
         const players = $(`#${idSBCMarketSolution} option`)
           .filter(":selected")
           .val();
@@ -109,8 +110,9 @@ export const sbcViewOverride = () => {
     squladDetailPanelView.call(this, ...params);
     const sbcId = params.length ? params[0].id : "";
     setValue("squadId", sbcId);
-    fetchAndAppendCommunitySbcs(sbcId);
-    fetchAndAppendMarketAlertSbcs(sbcId);
+    fetchAndAppendCommunitySbcs(sbcId).then(() =>{
+      fetchAndAppendMarketAlertSbcs(sbcId);
+    });    
     setTimeout(async () => {
       if (!$(".futBinFill").length) {
         $(".challenge-content").append(
@@ -173,8 +175,26 @@ const fillMarketAlertSbc = async (players) => {
   positionPlayers(players, squadPlayersLookup);
 };
 
+// const fetchAndAppendCommunitySbcs = async (challengeId) => {
+//   const squads = await getAllSBCSForChallenge(challengeId);
+//   $(`#${idSBCFUTBINSolution}`).remove();
+//   $(".sbcSolutions").append(
+//     `<select id="${idSBCFUTBINSolution}" class="sbc-players-list" style="border : 1px solid; width: 90%;">
+//       <option selected="true" disabled value='-1'>${t(
+//         "futBinSBCSolutions"
+//       )}</option>
+//       ${squads.map(
+//         (value) =>
+//           `<option class="currency-coins" value='${value.id}'>${value.id}(${t(
+//             "price"
+//           )} ${value.ps_price})</option>`
+//       )}
+//    </select>`
+//   );
+// };
+
 const fetchAndAppendCommunitySbcs = async (challengeId) => {
-  const squads = await getAllSBCSForChallenge(challengeId);
+  const squads = await getLatestAllSBCSForChallenge(challengeId);
   $(`#${idSBCFUTBINSolution}`).remove();
   $(".sbcSolutions").append(
     `<select id="${idSBCFUTBINSolution}" class="sbc-players-list" style="border : 1px solid; width: 90%;">
@@ -185,32 +205,34 @@ const fetchAndAppendCommunitySbcs = async (challengeId) => {
         (value) =>
           `<option class="currency-coins" value='${value.id}'>${value.id}(${t(
             "price"
-          )} ${value.ps_price})</option>`
+          )} ${value.prices.ps})</option>`
       )}
    </select>`
   );
 };
 
 const fetchAndAppendMarketAlertSbcs = async (challengeId) => {
-  const accessLevel = getValue("userAccess");
-  if (!isMarketAlertApp || !accessLevel || accessLevel === "tradeEnhancer") {
-    $(`#${idSBCMarketSolution}`).remove();
-    await wait(1);
-    return $(".sbcSolutions").append(
-      `<select id="${idSBCMarketSolution}" class="sbc-players-list" style="border : 1px solid; width: 90%;">
-        <option selected="true" disabled value='-1'>${t(
-          "marketSBCSolutions"
-        )}</option>
-        ${Array(getRandNum(10, 20))
-          .fill("")
-          .map(() => {
-            return `<option class="currency-coins">Available Players(???)</option>`;
-          })}
-     </select>`
-    );
-  }
+  // const accessLevel = getValue("userAccess");
+  // if (!isMarketAlertApp || !accessLevel || accessLevel === "tradeEnhancer") {
+  //   $(`#${idSBCMarketSolution}`).remove();
+  //   await wait(1);
+  //   return $(".sbcSolutions").append(
+  //     `<select id="${idSBCMarketSolution}" class="sbc-players-list" style="border : 1px solid; width: 90%;">
+  //       <option selected="true" disabled value='-1'>${t(
+  //         "marketSBCSolutions"
+  //       )}</option>
+  //       ${Array(getRandNum(10, 20))
+  //         .fill("")
+  //         .map(() => {
+  //           return `<option class="currency-coins">Available Players(???)</option>`;
+  //         })}
+  //    </select>`
+  //   );
+  // }
+  //showLoader();
   const squadPlayers = await getSquadPlayerIds();
-  const { sbcs } = await fetchSbcs(challengeId, Array.from(squadPlayers));
+  // const { sbcs } = await fetchSbcs(challengeId, Array.from(squadPlayers));
+  const sbcs = await fetchSbcsWithLocal(challengeId, Array.from(squadPlayers));
 
   $(`#${idSBCMarketSolution}`).remove();
 
@@ -251,6 +273,7 @@ const fetchAndAppendMarketAlertSbcs = async (challengeId) => {
       })}
    </select>`
   );
+  //showLoader();
 };
 
 const getControllerInstance = () => {

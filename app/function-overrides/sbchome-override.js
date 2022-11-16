@@ -71,10 +71,10 @@ export const sbcHomeOverride = () => {
   const findSolvableSbcs = async (set) => {
     showLoader();
     try {
-      const accessLevel = getValue("userAccess");
-      if (!accessLevel || accessLevel === "tradeEnhancer") {
-        return fakeFindSbcs("levelError");
-      }
+      // const accessLevel = getValue("userAccess");
+      // if (!accessLevel || accessLevel === "tradeEnhancer") {
+      //   return fakeFindSbcs("levelError");
+      // }
       sendUINotification(t("gatherChallengeInfo"));
       const challenges = await getAllChallanges();
       sendUINotification(t("gatherSquadInfo"));
