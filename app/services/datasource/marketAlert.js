@@ -7,6 +7,7 @@ import {
   getAllSBCSForChallenge,
   getSbcPlayersInfo,
 } from "../datasource/futbin";
+import { hideLoader, showLoader } from "../../utils/commonUtil";
 
 const fetchPrices = async (items) => {
   const result = new Map();
@@ -78,10 +79,12 @@ export const fetchSbcsWithLocal = async (challengeId, payload) => {
     const players = [];
     for (let i = 0; i < futBinSquadPlayersInfo.length; i++) {
       const playersInfo = futBinSquadPlayersInfo[i];
-      players.push(playersInfo.definitionId); 
-      if (squadPlayers.has(playersInfo.definitionId)){
-        availablePlayers +=1;      
-      }      
+      if (playersInfo) {
+        players.push(playersInfo.definitionId); 
+        if (squadPlayers.has(playersInfo.definitionId)){
+          availablePlayers +=1;      
+        }      
+      }
     } 
     
     sbcs.push({
@@ -92,7 +95,6 @@ export const fetchSbcsWithLocal = async (challengeId, payload) => {
     });
     
   }
-
   return sbcs;
 };
 
