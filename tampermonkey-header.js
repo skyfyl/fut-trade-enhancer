@@ -1,9 +1,9 @@
 module.exports = {
   headers: {
-    name: "FUT Trade Enhancer",
+    name: "FUT Trade Enhancer Kobe",
     namespace: "http://tampermonkey.net/",
     version: "1.5.6",
-    description: "FUT Trade Enhancer",
+    description: "FUT Trade Enhancer Kobe",
     author: "CK Algos",
     match: [
       "https://www.ea.com/*/fifa/ultimate-team/web-app/*",
@@ -25,8 +25,8 @@ module.exports = {
       "on.aws",
     ],
     updateURL:
-      "https://github.com/ckalgos/fut-trade-enhancer/releases/latest/download/fut-trade-enhancer.user.js",
+      "https://github.com/skyfyl/fut-trade-enhancer/releases/latest/download/fut-trade-enhancer.user.js",
     downloadURL:
-      "https://github.com/ckalgos/fut-trade-enhancer/releases/latest/download/fut-trade-enhancer.user.js",
+      "https://github.com/skyfyl/fut-trade-enhancer/releases/latest/download/fut-trade-enhancer.user.js",
   },
 };
