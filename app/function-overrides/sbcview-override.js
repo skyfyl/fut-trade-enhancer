@@ -379,7 +379,7 @@ const buyPlayer = (player, buyPrice) => {
       );
       searchCriteria.maxBuy = buyPrice;
 
-      searchModel.searchFeature = enums.ItemSearchFeature.MARKET;
+      searchModel.searchFeature = ItemSearchFeature.MARKET;
       searchModel.defaultSearchCriteria.type = searchCriteria.type;
       searchModel.defaultSearchCriteria.category = searchCriteria.category;
       searchModel.updateSearchCriteria(searchCriteria);
