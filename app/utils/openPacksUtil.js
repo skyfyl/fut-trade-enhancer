@@ -12,7 +12,7 @@ import { sendPinEvents, sendUINotification } from "./notificationUtil";
 import { t } from "../services/translate";
 import { updateUserCredits } from "../services/user";
 import { getDataSource, getValue } from "../services/repository";
-import { listCards, listCardsOverPrice,  computeSalePrice} from "./reListUtil";
+import { listCards, listCardsOverPrice,  computeSalePrice, listCardsWithMinBin} from "./reListUtil";
 import { fetchPrices} from "../services/datasource/index";
 import { getSellPrice} from "./sellUtil";
 import { showPopUp } from "../function-overrides/popup-override";
@@ -20,6 +20,11 @@ import { showPopUp } from "../function-overrides/popup-override";
 export const validateFormAndOpenPack = async (pack) => {
   const popUpValues = getPopUpValues();
   await buyRequiredNoOfPacks(pack, popUpValues);
+};
+
+const swapArr = (arr, index1, index2) => {
+  arr[index1] = arr.splice(index2, 1, arr[index1])[0];
+  return arr;
 };
 
 const setUpType = () => {
@@ -44,13 +49,18 @@ const setUpType = () => {
       value: "listExternalOverPrice",
       label: formatDataSource(t("listFutBinOverPrice"), getDataSource()),
     },
+    {
+      value: "listExternalMinBin",
+      label: formatDataSource(t("listFutBinMinBin"), getDataSource()),
+    },
   ];
+
   return [
-    { id: idPackPlayersAction, label: t("players"), actions: defaultOptions },
+    { id: idPackPlayersAction, label: t("players"), actions: swapArr(JSON.parse(JSON.stringify(defaultOptions)), 0, 3)},
     {
       id: idPackNonPlayersAction,
       label: t("nonPlayers"),
-      actions: defaultOptions.slice(0, 3),
+      actions: swapArr(JSON.parse(JSON.stringify(defaultOptions)), 0, 2),
     },
     // {
     //   id: idPackDuplicatesAction,
@@ -60,12 +70,12 @@ const setUpType = () => {
     {
       id: idPackDuplicatesPlayersAction,
       label: t("duplicatesPlayers"),
-      actions: defaultOptions.slice(1),
+      actions: swapArr(JSON.parse(JSON.stringify(defaultOptions)), 0, 3),
     },
     {
       id: idPackDuplicatesNonPlayersAction,
       label: t("duplicatesNonPlayers"),
-      actions: defaultOptions.slice(1),
+      actions: swapArr(JSON.parse(JSON.stringify(defaultOptions)), 0, 2),
     },
   ];
 };
@@ -108,7 +118,7 @@ ${label}
 };
 
 const getPopUpValues = () => {
-  const noOfPacks = parseInt($(`#${idPacksCount}`).val()) || 3;
+  const noOfPacks = parseInt($(`#${idPacksCount}`).val()) || 10;
   const credits = $(`#${idPackOpenCredits}`).val() || GameCurrency.COINS;
   const playersHandler = $(`#${idPackPlayersAction}`).val();
   const nonPlayersHandler = $(`#${idPackNonPlayersAction}`).val();
@@ -256,6 +266,10 @@ const handleItems = (items, action) => {
           resolve("");
         }
       );
+    } else if(action === "listExternalMinBin"){
+      await listCardsWithMinBin(items);
+      showLoader();
+      resolve("");
     } 
      else if (action === "quickSell") {
       services.Item.discard(items).observe(this, function (sender, data) {
@@ -293,8 +307,6 @@ const buyPack = (pack, popUpValues) => {
         services.Item.requestUnassignedItems().observe(
           this,
           async function (sender, { response: { items } }) {
-
-            let sellSum = 0;
             const players = items.filter(
               (item) => item.isPlayer()
             );
@@ -302,9 +314,8 @@ const buyPack = (pack, popUpValues) => {
             const dataSource = getDataSource();
             for (const card of players) {
               const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
-              if (existingValue && existingValue.price && card._itemPriceLimits.minimum < 3000) {
-                const [isRight, sellPrice]  = await getSellPrice(computeSalePrice(existingValue.price), card);
-                sellSum += sellPrice;
+              if (existingValue && existingValue.price) {
+
               } else {
                 sendUINotification(
                   `${t("priceMissing")} ${card._staticData.name}`,
@@ -342,6 +353,16 @@ const buyPack = (pack, popUpValues) => {
             response += await handleMiscItems(items);
             await wait(1);
             await updateUserCredits();
+
+            let sellSum = 0;
+            for (const card of items) {
+              const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
+              if (existingValue && existingValue.price) {
+                const [isRight, sellPrice]  = await getSellPrice(computeSalePrice(existingValue.price), card);
+                sellSum += sellPrice;
+              } 
+            }
+
             resolve({ success: !response.length, message: response , sellSum: sellSum});
           }
         );

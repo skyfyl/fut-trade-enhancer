@@ -14,7 +14,7 @@ import {
 import { sendUINotification } from "./notificationUtil";
 import { listForPrice } from "./sellUtil";
 import { t } from "../services/translate";
-import { fetchPrices } from "../services/datasource";
+import { fetchPrices, fetchNoPlayerPrices } from "../services/datasource";
 import { moveToClub } from "../utils/clubMoveUtil";
 
 export const relistForFixedPrice = function (sectionHeader) {
@@ -151,6 +151,28 @@ const handleTransferListItems = (
   );
 };
 
+export const listCardsWithMinBin = async (cards, price, startPrice, isRelist) => {
+  cards = cards.filter((card) => !card.untradeable);
+  const dataSource = getDataSource();
+  if (!cards.length) {
+    sendUINotification(t("noCardsToList"), UINotificationType.NEGATIVE);
+    return;
+  }
+  showLoader();
+  if (price) {
+    sendUINotification(
+      `${formatDataSource(t("listingCards"), dataSource)} ${price}`
+    );
+    await listCardsForFixedPrice(cards, price, startPrice, isRelist);
+  } else {
+    sendUINotification(formatDataSource(t("listingCardsFutBin"), dataSource));
+    await listCardsForFutBINWithMinBinAndQuickSell(cards, isRelist);
+  }
+  hideLoader();
+  sendUINotification(t("listingCardsCompleted"));
+};
+
+
 export const listCards = async (cards, price, startPrice, isRelist) => {
   cards = cards.filter((card) => !card.untradeable);
   const dataSource = getDataSource();
@@ -166,7 +188,7 @@ export const listCards = async (cards, price, startPrice, isRelist) => {
     await listCardsForFixedPrice(cards, price, startPrice, isRelist);
   } else {
     sendUINotification(formatDataSource(t("listingCardsFutBin"), dataSource));
-    await listCardsForFutBIN(cards, isRelist);
+    await listCardsForFutBINWithMinBin(cards, isRelist);
   }
   hideLoader();
   sendUINotification(t("listingCardsCompleted"));
@@ -213,6 +235,85 @@ const listCardsForFutBIN = async (cards, isRelist) => {
         UINotificationType.NEGATIVE
       );
     }
+  }
+};
+
+const listCardsForFutBINWithMinBin = async (cards, isRelist) => {
+  const dataSource = getDataSource();
+  const players = [];
+  const noPlayers = [];
+
+  for (const item of cards) {
+    if (!item.definitionId) {
+      continue;
+    }
+
+    if (item.isPlayer()) {
+      players.push(item);
+    } else  {
+      noPlayers.push(item);
+    }
+  }
+
+  await fetchPrices(players);
+  await fetchNoPlayerPrices(noPlayers);
+
+  for (const card of cards) {
+    const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
+    if (existingValue && existingValue.price) {
+      await listCard(computeSalePrice(existingValue.price), card);
+    } else {
+      sendUINotification(
+        `${t("priceMissing")} ${card._staticData.name}`,
+        UINotificationType.NEGATIVE
+      );
+    }
+  }
+};
+
+const listCardsForFutBINWithMinBinAndQuickSell = async (cards, isRelist) => {
+  const dataSource = getDataSource();
+  const players = [];
+  const noPlayers = [];
+
+  for (const item of cards) {
+    if (!item.definitionId) {
+      continue;
+    }
+
+    if (item.isPlayer()) {
+      players.push(item);
+    } else  {
+      noPlayers.push(item);
+    }
+  }
+
+  await fetchPrices(players);
+  await fetchNoPlayerPrices(noPlayers);
+
+  const quickSells = [];
+  for (const card of cards) {
+    const existingValue = getValue(`${card.definitionId}_${dataSource}_price`);
+    if (existingValue && existingValue.price ) {
+      if (card.isPlayer() || existingValue.price > 200) {
+        await listCard(computeSalePrice(existingValue.price), card);
+      }
+      else {
+        quickSells.push(card);        
+      }
+     
+    } else {
+      sendUINotification(
+        `${t("priceMissing")} ${card._staticData.name}`,
+        UINotificationType.NEGATIVE
+      );
+    }
+  }
+
+  if (quickSells) {
+    services.Item.discard(quickSells).observe(this, function (sender, data) {
+      resolve("");
+    });
   }
 };
 
