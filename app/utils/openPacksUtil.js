@@ -118,7 +118,7 @@ ${label}
 };
 
 const getPopUpValues = () => {
-  const noOfPacks = parseInt($(`#${idPacksCount}`).val()) || 10;
+  const noOfPacks = parseInt($(`#${idPacksCount}`).val()) || 3;
   const credits = $(`#${idPackOpenCredits}`).val() || GameCurrency.COINS;
   const playersHandler = $(`#${idPackPlayersAction}`).val();
   const nonPlayersHandler = $(`#${idPackNonPlayersAction}`).val();
