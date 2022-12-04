@@ -11,6 +11,12 @@ import {
   generateDownloadClubCsv,
   generateSendToTransferList,
 } from "../utils/uiUtils/generateElements";
+import {  appendSectionPrices } from "../utils/priceAppendUtil";
+import {
+  getDataSource,
+  getSelectedPlayersBySection,
+  getValue,
+} from "../services/repository";
 
 export const clubSearchOverride = () => {
   const clubPageGenerate = UTClubItemSearchHeaderView.prototype._generate;
@@ -23,7 +29,17 @@ export const clubSearchOverride = () => {
       );
     }
     showLoader();
-    let nonActiveSquadPlayers = await getNonActiveSquadPlayers(true);
+    const selectedPlayersBySection =  getSelectedPlayersBySection("club") || new Map();
+    const selectedPlayersBySectionData =  getSelectedPlayersBySection("club_data") || new Map();
+    const result = [];
+    for (const [key, data] of selectedPlayersBySectionData) {
+      let selected = selectedPlayersBySection.get(key);
+      if (selected){        
+        data.isValid() && result.push(data);
+      }      
+    }
+    // let nonActiveSquadPlayers = await getNonActiveSquadPlayers(true);
+    let nonActiveSquadPlayers = result;
     if (nonActiveSquadPlayers) {
       moveToTransferList(nonActiveSquadPlayers);
     }
@@ -44,4 +60,5 @@ export const clubSearchOverride = () => {
       this.__searchContainer.prepend(sendToTransferList.__root);
     }
   };
+
 };

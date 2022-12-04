@@ -34,7 +34,7 @@ export const appendCardPrice = async (listRows, section) => {
 
   const isSelectable =
     !isFromPacks &&
-    section !== "club" &&
+    // section !== "club" &&
     !sectionAuctionData.isSold() &&
     !sectionAuctionData.isActiveTrade() &&
     !sectionAuctionData.isOutbid();
@@ -151,7 +151,7 @@ export const appendSectionPrices = async (sectionData) => {
         ).__root
       );
     }
-    if (sectionData.isRelistSupported) {
+    if (sectionData.isRelistSupported && sectionData.sectionHeader !== "club") {
       const wrapperElement = appendRelistExternal(
         sectionData.sectionHeader,
         sectionData.headerElement,

@@ -116,6 +116,30 @@ export const getAllChallanges = async () => {
   });
 };
 
+// export const GetPlayersWithRating = async (rating, rareType) => {
+//   const pageSize = 32;
+//   const futBinUrl = `https://www.futbin.org/futbin/api/23/getFilteredPlayers?order=aes&page=1&platform=PS&rating=${rating}-${rating}&sort=price&version=${rareType}`;
+//   return new Promise((resolve) => {
+//     sendExternalRequest({
+//       method: "GET",
+//       identifier: `${Math.floor(+new Date())}getAllChallanges`,
+//       url: futBinUrl,
+//       onload: (res) => {
+//         if (res.status !== 200) {
+//           return resolve(new Map());
+//         }
+
+//         const { data } = JSON.parse(res.response);
+//         const lookUp = data.reduce((acc, curr) => {
+//           acc.set(curr.ChallengeID, curr.chal_name);
+//           return acc;
+//         }, new Map());
+//         resolve(lookUp);
+//       },
+//     });
+//   });
+// };
+
 export const getAllSBCSForChallenge = async (challengeId) => {
   const futBinUrl = `https://futbin.org/futbin/api/getStcSquads?challenge=${challengeId}`;
   return new Promise((resolve) => {

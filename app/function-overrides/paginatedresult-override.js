@@ -1,4 +1,9 @@
 import { appendCardPrice, appendSectionPrices } from "../utils/priceAppendUtil";
+import {
+  getCheckedSection,
+  getSelectedPlayersBySection,
+  clearSelectedPlayersBySection,
+} from "../services/repository";
 
 export const paginatedResultOverride = () => {
   const paginatedRenderList = UTPaginatedItemListView.prototype._renderItems;
@@ -8,13 +13,30 @@ export const paginatedResultOverride = () => {
 
   UTPaginatedItemListView.prototype._renderItems = function (...args) {
     const result = paginatedRenderList.call(this, args);
+    const section = "club";
+    clearSelectedPlayersBySection(section + "_data");
+    const selectedPlayersBySectionData = getSelectedPlayersBySection(section + "_data") || new Map();
+    for (const { data } of this.listRows) {
+      selectedPlayersBySectionData.set(data.id, data);
+    }            
+
+    appendSectionPrices({
+      listRows: this.listRows.map(({ __root, __auction, data }) => ({
+        __root,
+        __auction,
+        data,
+      })),
+      headerElement: $(this.__root),
+      isRelistSupported: true,
+      sectionHeader: section,
+    });
     appendCardPrice(
       this.listRows.map(({ __root, __auction, data }) => ({
         __root,
         __auction,
         data,
       })),
-      "club"
+      section
     );
     return result;
   };

@@ -38,6 +38,10 @@ export const getCheckedSection = (section) => {
 
 export const clearSelectedPlayersBySection = (section) => {
   const selectedPlayersBySection = getValue("selectedPlayers") || {};
+  if (!selectedPlayersBySection[section]) {
+    selectedPlayersBySection[section] = new Map();
+    setValue("selectedPlayers", selectedPlayersBySection);
+  }
   selectedPlayersBySection[section].clear();
   return selectedPlayersBySection[section];
 };
