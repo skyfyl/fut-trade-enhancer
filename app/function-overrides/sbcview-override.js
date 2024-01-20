@@ -234,6 +234,8 @@ const fetchAndAppendMarketAlertSbcs = async (challengeId) => {
   // const { sbcs } = await fetchSbcs(challengeId, Array.from(squadPlayers));
   const sbcs = await fetchSbcsWithLocal(challengeId, Array.from(squadPlayers));
 
+  sbcs.sort((a, b) => b.availablePlayers - a.availablePlayers);
+
   $(`#${idSBCMarketSolution}`).remove();
 
   const isFutBin = getDataSource() === "futbin";
