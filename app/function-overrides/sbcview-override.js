@@ -38,18 +38,18 @@ export const sbcViewOverride = () => {
   const squadActionInit = UTSquadActionsView.prototype.init;
   UTSquadActionsView.prototype.init = function (...args) {
     const response = squadActionInit.call(this, ...args);
-    const showBuy = this.eventDelegates[0]._inSquadContext;
-    showBuy &&
-      $(
-        generateButton(
-          idBuySBCPlayers,
-          t("buyMissingPlayers"),
-          () => {
-            buyPlayersPopUp();
-          },
-          "call-to-action"
-        )
-      ).insertAfter($(this._deleteBtn.__root));
+    // const showBuy = this.eventDelegates[0]._inSquadContext;
+    // showBuy &&
+    //   $(
+    //     generateButton(
+    //       idBuySBCPlayers,
+    //       t("buyMissingPlayers"),
+    //       () => {
+    //         buyPlayersPopUp();
+    //       },
+    //       "call-to-action"
+    //     )
+    //   ).insertAfter($(this._deleteBtn.__root));
     return response;
   };
 
@@ -111,35 +111,36 @@ export const sbcViewOverride = () => {
     const sbcId = params.length ? params[0].id : "";
     setValue("squadId", sbcId);
     fetchAndAppendCommunitySbcs(sbcId).then(() =>{
-      fetchAndAppendMarketAlertSbcs(sbcId);
+      sendUINotification(t("Loading sbc local solve"), UINotificationType.NEUTRAL);
+      fetchAndAppendMarketAlertSbcs(sbcId);      
     });    
     setTimeout(async () => {
       if (!$(".futBinFill").length) {
         $(".challenge-content").append(
           $(
-            `<div class="sbcSolutions"></div>
-            <div class="futBinFill">
-              <input id="squadId" type="text" class="ut-text-input-control futBinId" placeholder=${t(
-                "futBinId"
-              )} />
-              ${generateButton(
-                idFillSBC,
-                t("autoFill"),
-                async () => {
-                  await validateAndFillSquad();
-                },
-                "call-to-action"
-              )}
-            </div>            
-            ${generateButton(
-              idBuySBCPlayers,
-              t("buyMissingPlayers"),
-              () => {
-                buyPlayersPopUp();
-              },
-              "call-to-action"
-            )}
-          `
+            `<div class="sbcSolutions"></div>`
+          //   <div class="futBinFill">
+          //     <input id="squadId" type="text" class="ut-text-input-control futBinId" placeholder=${t(
+          //       "futBinId"
+          //     )} />
+          //     ${generateButton(
+          //       idFillSBC,
+          //       t("autoFill"),
+          //       async () => {
+          //         await validateAndFillSquad();
+          //       },
+          //       "call-to-action"
+          //     )}
+          //   </div>            
+          //   ${generateButton(
+          //     idBuySBCPlayers,
+          //     t("buyMissingPlayers"),
+          //     () => {
+          //       buyPlayersPopUp();
+          //     },
+          //     "call-to-action"
+          //   )}
+          // `
           )
         );
       }
@@ -276,6 +277,7 @@ const fetchAndAppendMarketAlertSbcs = async (challengeId) => {
    </select>`
   );
   //showLoader();
+  sendUINotification(t("sbc local solve done"), UINotificationType.POSITIVE);
 };
 
 const getControllerInstance = () => {
