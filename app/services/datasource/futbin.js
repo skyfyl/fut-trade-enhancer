@@ -65,7 +65,7 @@ const getPlayerUrl = (player) => {
     sendExternalRequest({
       method: "GET",
       identifier: `${Math.floor(+new Date())}_getFutbinPlayerUrl`,
-      url: `https://www.futbin.com/search?year=23&term=${playerName}`,
+      url: `https://www.futbin.com/search?year=24&term=${playerName}`,
       onload: (res) => {
         if (res.status !== 200) {
           return resolve();
@@ -85,7 +85,7 @@ const getPlayerUrl = (player) => {
               p.club_image.endsWith(`/${player.teamId}.png`)
           );
         }
-        const url = `https://www.futbin.com/23/player/${filteredPlayer[0].id}`;
+        const url = `https://www.futbin.com/24/player/${filteredPlayer[0].id}`;
         setValue(`${player.definitionId}_futbin_url`, url);
         return resolve(url);
       },
@@ -232,7 +232,7 @@ const fetchPlayerPrices = async (playerIds, result) => {
     const refIds = playersIdArray.join(",");
     try {
       const futBinResponse = await sendRequest(
-        `https://www.futbin.com/23/playerPrices?player=${primaryId}&rids=${refIds}`,
+        `https://www.futbin.com/24/playerPrices?player=${primaryId}&rids=${refIds}`,
         "GET",
         `${Math.floor(+new Date())}_fetchPlayerPrices`
       );

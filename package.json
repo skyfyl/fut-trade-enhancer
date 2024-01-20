@@ -11,9 +11,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ckalgos/fut-trade-enhancer.git"
+    "url": "https://github.com/skyfyl/fut-trade-enhancer.git"
   },
-  "author": "Ck Algos",
+  "author": "Kobe Peng",
   "license": "ISC",
   "dependencies": {
     "webpack": "^5.47.1"
