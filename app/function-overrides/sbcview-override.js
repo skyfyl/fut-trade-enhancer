@@ -231,26 +231,41 @@ const fetchAndAppendMarketAlertSbcs = async (challengeId) => {
   //   );
   // }
   //showLoader();
-  const squadPlayers = await getSquadPlayerIds();
+  // const squadPlayers = await getSquadPlayerIds();
+  console.time('Squaring elements 1');
+  const squadPlayers = repositories.Item.club.items.filter(i => i.type === 'player' && i.loans === -1 && i.academy == null).map(p => p.definitionId);
+  console.timeEnd('Squaring elements 1');
   // const { sbcs } = await fetchSbcs(challengeId, Array.from(squadPlayers));
-  const sbcs = await fetchSbcsWithLocal(challengeId, Array.from(squadPlayers));
+  console.time('Squaring elements 2');
+  const sbcs = await fetchSbcsWithLocal(challengeId, squadPlayers);
+  console.timeEnd('Squaring elements 2');
 
+  console.time('Squaring elements 3');
   sbcs.sort((a, b) => b.availablePlayers - a.availablePlayers);
+  console.timeEnd('Squaring elements 3');
 
   $(`#${idSBCMarketSolution}`).remove();
 
+  console.time('Squaring elements 4');
   const isFutBin = getDataSource() === "futbin";
   if (isFutBin) {
+    console.time('Squaring elements 4.1');
     const solutionPlayers = sbcs.reduce((acc, { players }) => {
       players.forEach((curr) => {
-        !squadPlayers.has(curr) &&
+        !(squadPlayers.indexOf(curr) !== -1) &&
           acc.set(curr, { definitionId: curr, isPlayer: () => true });
       });
       return acc;
     }, new Map());
+    console.timeEnd('Squaring elements 4.1');
+    console.time('Squaring elements 4.2');
     await fetchPrices(solutionPlayers.values());
+    console.timeEnd('Squaring elements 4.2');
   }
 
+  console.timeEnd('Squaring elements 4');
+
+  console.time('Squaring elements 5');
   $(".sbcSolutions").append(
     `<select id="${idSBCMarketSolution}" class="sbc-players-list" style="border : 1px solid; width: 90%;">
       <option selected="true" disabled value='-1'>${t(
@@ -260,7 +275,7 @@ const fetchAndAppendMarketAlertSbcs = async (challengeId) => {
         let label = "";
         if (isFutBin) {
           const total = players.reduce((acc, curr) => {
-            if (!squadPlayers.has(curr)) {
+            if (!(squadPlayers.indexOf(curr) !== -1)) {
               const futBinPrice = getValue(`${curr}_futbin_price`);
               if (futBinPrice) {
                 acc += futBinPrice.price;
@@ -276,6 +291,8 @@ const fetchAndAppendMarketAlertSbcs = async (challengeId) => {
       })}
    </select>`
   );
+
+  console.timeEnd('Squaring elements 5');
   //showLoader();
   sendUINotification(t("sbc local solve done"), UINotificationType.POSITIVE);
 };

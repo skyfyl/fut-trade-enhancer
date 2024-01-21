@@ -66,26 +66,34 @@ export const fetchSbcs = async (challengeId, payload) => {
   return JSON.parse(response);
 };
 
-export const fetchSbcsWithLocal = async (challengeId, payload) => {
+export const fetchSbcsWithLocal = async (challengeId, squadPlayers) => {
   const sbcId = challengeId;
   const sbcs = [];
-  const squadPlayers = await getSquadPlayerIds();
+  // const squadPlayers = await getSquadPlayerIds();
+  console.time('Squaring elements 2.1');
   const squads = await getLatestAllSBCSForChallenge(challengeId);
+  console.timeEnd('Squaring elements 2.1');
+
+  console.time('Squaring elements 2.2');
   for (let index = 0; index < squads.length; index++) {
     const squad = squads[index];
     const _id = squad.id;
+    console.time('Squaring elements 2.2.1');
     const futBinSquadPlayersInfo = await getSbcPlayersInfo(squad.id);
+    console.timeEnd('Squaring elements 2.2.1');
     let availablePlayers = 0;
     const players = [];
+    console.time('Squaring elements 2.2.2');
     for (let i = 0; i < futBinSquadPlayersInfo.length; i++) {
       const playersInfo = futBinSquadPlayersInfo[i];
       if (playersInfo) {
         players.push(playersInfo.definitionId); 
-        if (squadPlayers.has(playersInfo.definitionId)){
+        if (squadPlayers.indexOf(playersInfo.definitionId) !== -1){
           availablePlayers +=1;      
         }      
       }
     } 
+    console.timeEnd('Squaring elements 2.2.2');
     
     sbcs.push({
       _id,
@@ -95,6 +103,7 @@ export const fetchSbcsWithLocal = async (challengeId, payload) => {
     });
     
   }
+  console.timeEnd('Squaring elements 2.2');
   return sbcs;
 };
 
