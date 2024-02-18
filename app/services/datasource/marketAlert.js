@@ -121,7 +121,7 @@ export const fetchSbcsWithLocal = async (challengeId, squadPlayers) => {
     const squad = squads[index];
     const _id = squad.id;
     console.time('Squaring elements 2.2.1');
-    const futBinSquadPlayersInfo = await getSBCSChallengeSquad(squad.id);
+    const futBinSquadPlayersInfo = await getSBCSChallengeSquad(challengeId, squad.id);
     console.timeEnd('Squaring elements 2.2.1');
     let availablePlayers = 0;
     const players = [];
