@@ -75,7 +75,7 @@ const getSBCSChallenge = async (challengeId) => {
       } else{
         const squads = await getLatestAllSBCSForChallenge(challengeId);      
         const cacheValue = {
-          expiryTimeStamp: new Date(Date.now() + 2 * 60 * 60 * 1000),
+          expiryTimeStamp: new Date(Date.now() + 15 * 60 * 1000),
           squads: squads
         };
   
@@ -85,6 +85,27 @@ const getSBCSChallenge = async (challengeId) => {
     } catch (err) {
       console.log(err);
     }
+};
+
+const getSBCSChallengeSquad = async (challengeId, squadId) => {
+  try {
+    const cacheKey = `${challengeId}_futbin_challenge_${squadId}`;
+    const value = getValue(cacheKey);
+    if (value) {
+      return value.squad;
+    } else{
+      const squad = await getSbcPlayersInfo(squadId);  
+      const cacheValue = {
+        expiryTimeStamp: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        squad: squad
+      };
+
+      setValue(cacheKey, cacheValue);
+      return squad;
+    }      
+  } catch (err) {
+    console.log(err);
+  }
 };
 
 export const fetchSbcsWithLocal = async (challengeId, squadPlayers) => {
@@ -100,7 +121,7 @@ export const fetchSbcsWithLocal = async (challengeId, squadPlayers) => {
     const squad = squads[index];
     const _id = squad.id;
     console.time('Squaring elements 2.2.1');
-    const futBinSquadPlayersInfo = await getSbcPlayersInfo(squad.id);
+    const futBinSquadPlayersInfo = await getSBCSChallengeSquad(squad.id);
     console.timeEnd('Squaring elements 2.2.1');
     let availablePlayers = 0;
     const players = [];
