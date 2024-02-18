@@ -66,12 +66,33 @@ export const fetchSbcs = async (challengeId, payload) => {
   return JSON.parse(response);
 };
 
+const getSBCSChallenge = async (challengeId) => {
+    try {
+      const cacheKey = `${challengeId}_futbin_challenge`;
+      const value = getValue(cacheKey);
+      if (value) {
+        return value.squads;
+      } else{
+        const squads = await getLatestAllSBCSForChallenge(challengeId);      
+        const cacheValue = {
+          expiryTimeStamp: new Date(Date.now() + 2 * 60 * 60 * 1000),
+          squads: squads
+        };
+  
+        setValue(cacheKey, cacheValue);
+        return squads;
+      }      
+    } catch (err) {
+      console.log(err);
+    }
+};
+
 export const fetchSbcsWithLocal = async (challengeId, squadPlayers) => {
   const sbcId = challengeId;
   const sbcs = [];
   // const squadPlayers = await getSquadPlayerIds();
   console.time('Squaring elements 2.1');
-  const squads = await getLatestAllSBCSForChallenge(challengeId);
+  const squads = await getSBCSChallenge(challengeId);
   console.timeEnd('Squaring elements 2.1');
 
   console.time('Squaring elements 2.2');
